@@ -1,0 +1,32 @@
+﻿@using TravelAgency.ViewModels;
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+@model IEnumerable<TravelOfferingsViewModel>
+
+<div class="text-center">
+    <h1 class="display-4">UBB Travel Agency</h1>
+    <br />
+    <p>Embrace the rhythm of the journey. Discover the joy of exploration with us!</p>
+</div>
+<br />
+<br />
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <ul>
+                @foreach (var item in Model)
+                {
+                    <li>
+                        <a asp-controller="Home" asp-action="Detail" asp-route-id="@item.Id">@item.Name - @item.Destination</a>
+                    </li>
+                }
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <img src="https://nextvacay.com/wp-content/uploads/2022/07/KW-why-travel-is-important.jpg" class="img-fluid">
+        </div>
+    </div>
+</div>
+

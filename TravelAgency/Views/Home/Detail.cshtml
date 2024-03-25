@@ -1,0 +1,29 @@
+﻿@using TravelAgency.ViewModels;
+@{
+    ViewData["Title"] = "Home Page";
+}
+@model TravelOfferingsViewModel;
+
+
+
+<ul>
+    <li>
+        <p>Name: @Model.Name </p>
+    </li>
+    <li>
+        <p>Destination: @Model.Destination </p>
+    </li>
+    <li>
+        <p>StartDate: @Model.StartDate </p>
+    </li>
+    <li>
+        <p>EndDate: @Model.EndDate </p>
+    </li>
+    <li>
+        <p>Price: @Model.Price </p>
+    </li>
+    <li>
+        <p>Description: @Model.Description </p>
+    </li>
+</ul>
+
