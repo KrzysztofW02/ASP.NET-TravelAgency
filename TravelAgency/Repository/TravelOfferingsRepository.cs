@@ -1,4 +1,5 @@
-﻿using TravelAgency.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using TravelAgency.Models;
 
 namespace TravelAgency.Repository
 {
@@ -10,34 +11,37 @@ namespace TravelAgency.Repository
         {
             _context = context;
         }
-        public void Delete(TravelOffering offering)
+
+        public async Task<IEnumerable<TravelOffering>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _context.TravelOfferings.ToListAsync();
         }
 
-        public IEnumerable<TravelOffering> GetAll()
+        public async Task<TravelOffering> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            return await _context.TravelOfferings.FindAsync(id);
         }
 
-        public TravelOffering GetById(int id)
+        public async Task AddAsync(TravelOffering travelOffering)
         {
-            throw new NotImplementedException();
+            _context.Add(travelOffering);
+            await _context.SaveChangesAsync();
         }
 
-        public void Insert(TravelOffering offering)
+        public async Task UpdateAsync(TravelOffering travelOffering)
         {
-            throw new NotImplementedException();
+            _context.Update(travelOffering);
+            await _context.SaveChangesAsync();
         }
 
-        public void save()
+        public async Task DeleteAsync(int id)
         {
-            throw new NotImplementedException();
-        }
-
-        public void Update(TravelOffering offering)
-        {
-            throw new NotImplementedException();
+            var travelOffering = await _context.TravelOfferings.FindAsync(id);
+            if (travelOffering != null)
+            {
+                _context.TravelOfferings.Remove(travelOffering);
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }
