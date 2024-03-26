@@ -6,6 +6,7 @@ using TravelAgency.Models;
 using TravelAgency.Data;
 using TravelAgency.Repository;
 using TravelAgency.Controllers;
+using TravelAgency.Services;
 
 namespace TravelAgency
 {
@@ -20,7 +21,10 @@ namespace TravelAgency
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddControllersWithViews();
+            builder.Services.AddScoped<ITravelAgencyService, TravelAgencyService>();
             builder.Services.AddScoped<ITravelOfferingsRepository, TravelOfferingsRepository>();
+            
+
 
             var app = builder.Build();
 

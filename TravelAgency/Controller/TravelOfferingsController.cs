@@ -1,23 +1,23 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TravelAgency.Models;
-using TravelAgency.Repository;
+using TravelAgency.Services;
 
 namespace TravelAgency.Controllers
 {
     public class TravelOfferingsController : Controller
     {
-        private readonly ITravelOfferingsRepository _travelOfferingsRepository;
+        private readonly ITravelAgencyService _travelAgencyService;
 
-        public TravelOfferingsController(ITravelOfferingsRepository travelOfferingsRepository)
+        public TravelOfferingsController(ITravelAgencyService travelOfferingsService)
         {
-            _travelOfferingsRepository = travelOfferingsRepository;
+            _travelAgencyService = travelOfferingsService;
         }
 
         // GET: TravelOfferings
         public async Task<IActionResult> Index()
         {
-            var travelOfferings = await _travelOfferingsRepository.GetAllAsync();
+            var travelOfferings = await _travelAgencyService.GetAllAsync();
             return View(travelOfferings);
         }
 
@@ -29,7 +29,7 @@ namespace TravelAgency.Controllers
                 return NotFound();
             }
 
-            var travelOffering = await _travelOfferingsRepository.GetByIdAsync(id.Value);
+            var travelOffering = await _travelAgencyService.GetByIdAsync(id.Value);
             if (travelOffering == null)
             {
                 return NotFound();
@@ -51,7 +51,7 @@ namespace TravelAgency.Controllers
         {
             if (ModelState.IsValid)
             {
-                await _travelOfferingsRepository.AddAsync(travelOffering);
+                await _travelAgencyService.AddAsync(travelOffering);
                 return RedirectToAction(nameof(Index));
             }
             return View(travelOffering);
@@ -65,7 +65,7 @@ namespace TravelAgency.Controllers
                 return NotFound();
             }
 
-            var travelOffering = await _travelOfferingsRepository.GetByIdAsync(id.Value);
+            var travelOffering = await _travelAgencyService.GetByIdAsync(id.Value);
             if (travelOffering == null)
             {
                 return NotFound();
@@ -87,7 +87,7 @@ namespace TravelAgency.Controllers
             {
                 try
                 {
-                    await _travelOfferingsRepository.UpdateAsync(travelOffering);
+                    await _travelAgencyService.UpdateAsync(travelOffering);
                 }
                 catch
                 {
@@ -106,7 +106,7 @@ namespace TravelAgency.Controllers
                 return NotFound();
             }
 
-            var travelOffering = await _travelOfferingsRepository.GetByIdAsync(id.Value);
+            var travelOffering = await _travelAgencyService.GetByIdAsync(id.Value);
             if (travelOffering == null)
             {
                 return NotFound();
@@ -120,7 +120,7 @@ namespace TravelAgency.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            await _travelOfferingsRepository.DeleteAsync(id);
+            await _travelAgencyService.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
     }

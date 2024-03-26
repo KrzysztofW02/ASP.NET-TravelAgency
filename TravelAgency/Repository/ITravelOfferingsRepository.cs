@@ -6,7 +6,7 @@ namespace TravelAgency.Repository
     {
         Task AddAsync(TravelOffering travelOffering);
         Task DeleteAsync(int id);
-        Task<IEnumerable<TravelOffering>> GetAllAsync();
+        Task<IQueryable<TravelOffering>> GetAllAsync();
         Task<TravelOffering> GetByIdAsync(int id);
         Task UpdateAsync(TravelOffering travelOffering);
     }

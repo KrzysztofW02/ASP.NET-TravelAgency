@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TravelAgency.Models;
-
 namespace TravelAgency.Repository
 {
     public class TravelOfferingsRepository : ITravelOfferingsRepository
@@ -12,9 +11,9 @@ namespace TravelAgency.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<TravelOffering>> GetAllAsync()
+        public async Task<IQueryable<TravelOffering>> GetAllAsync()
         {
-            return await _context.TravelOfferings.ToListAsync();
+            return _context.TravelOfferings.AsQueryable();
         }
 
         public async Task<TravelOffering> GetByIdAsync(int id)
