@@ -4,7 +4,6 @@
     ViewData["Title"] = "Index";
 }
 
-
 <h1 class="text-center">Travel Offerings:</h1>
 <br />
 
@@ -33,36 +32,70 @@
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Destination)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.StartDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.EndDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Price)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Destination)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.StartDate)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.EndDate)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Price)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Description)
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
+<div style="display: flex; align-items: center;">
+    <a asp-action="Create" class="btn btn-primary mr-2">Create New</a>
+    <form asp-controller="TravelOfferings" asp-action="Search" method="get">
+        <div style="display: flex;">
+            <input type="text" class="form-control mr-2" id="searchString" name="searchString" style="margin-left: 10px;" />
+            <button type="submit" class="btn btn-primary" style="margin-left: 5px;">Search</button>
+        </div>
+    </form>
+</div>
+
+<br />
+
+<!-- Sortowanie -->
+<form asp-controller="TravelOfferings" asp-action="Sort" method="get" class="form-inline">
+    <div class="d-flex align-items-center">
+        <div class="form-group mr-2">
+            <select class="form-control form-control-sm" id="sortOrder" name="sortOrder;">
+                <option value="Name">Name</option>
+                <option value="Destination">Destination</option>
+                <!-- Dodaj inne opcje sortowania, jeśli są dostępne -->
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 5px;">Sort</button>
+    </div>
+</form>
+
+<script>
+    function toggleSearch() {
+        var searchBox = document.getElementById("searchBox");
+        if (searchBox.style.display === "none") {
+            searchBox.style.display = "block";
+        } else {
+            searchBox.style.display = "none";
+        }
+    }
+</script>

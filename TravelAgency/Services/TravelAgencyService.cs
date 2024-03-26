@@ -37,5 +37,28 @@ namespace TravelAgency.Services
         {
             await _travelOfferingsRepository.DeleteAsync(id);
         }
+
+        public async Task<IEnumerable<TravelOffering>> SearchAsync(string searchString)
+        {
+            var offerings = await _travelOfferingsRepository.GetAllAsync();
+            return offerings.Where(o => o.Name.Contains(searchString) || o.Destination.Contains(searchString));
+        }
+
+        public async Task<IEnumerable<TravelOffering>> SortAsync(string sortOrder)
+        {
+            var offerings = await _travelOfferingsRepository.GetAllAsync();
+
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    return offerings.OrderByDescending(o => o.Name);
+                case "Date":
+                    return offerings.OrderBy(o => o.StartDate);
+                case "date_desc":
+                    return offerings.OrderByDescending(o => o.StartDate);
+                default:
+                    return offerings.OrderBy(o => o.Name);
+            }
+        }
     }
 }

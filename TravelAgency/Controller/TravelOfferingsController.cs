@@ -123,5 +123,24 @@ namespace TravelAgency.Controllers
             await _travelAgencyService.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
+
+        // GET: TravelOfferings/Search
+        public async Task<IActionResult> Search(string searchString)
+        {
+            if (string.IsNullOrEmpty(searchString))
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            var searchResults = await _travelAgencyService.SearchAsync(searchString);
+            return View("Index", searchResults);
+        }
+
+        // GET: TravelOfferings/Sort
+        public async Task<IActionResult> Sort(string sortOrder)
+        {
+            var sortedResults = await _travelAgencyService.SortAsync(sortOrder);
+            return View("Index", sortedResults);
+        }
     }
 }

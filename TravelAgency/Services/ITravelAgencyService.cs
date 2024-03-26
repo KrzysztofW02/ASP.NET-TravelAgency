@@ -9,5 +9,7 @@ namespace TravelAgency.Services
         Task<IEnumerable<TravelOffering>> GetAllAsync();
         Task<TravelOffering> GetByIdAsync(int id);
         Task UpdateAsync(TravelOffering travelOffering);
+        Task<IEnumerable<TravelOffering>> SearchAsync(string searchString);
+        Task<IEnumerable<TravelOffering>> SortAsync(string sortOrder);
     }
 }
