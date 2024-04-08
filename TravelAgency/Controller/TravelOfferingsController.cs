@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using TravelAgency.Models;
 using TravelAgency.Services;
@@ -9,17 +10,20 @@ namespace TravelAgency.Controllers
     public class TravelOfferingsController : Controller
     {
         private readonly ITravelAgencyService _travelAgencyService;
+        private readonly IMapper _mapper;
 
-        public TravelOfferingsController(ITravelAgencyService travelOfferingsService)
+        public TravelOfferingsController(ITravelAgencyService travelOfferingsService, IMapper mapper)
         {
             _travelAgencyService = travelOfferingsService;
+            _mapper = mapper;
         }
 
         // GET: TravelOfferings
         public async Task<IActionResult> Index()
         {
             var travelOfferings = await _travelAgencyService.GetAllAsync();
-            return View(travelOfferings);
+            var travelOfferingViewModel = _mapper.Map<IEnumerable<TravelOfferingViewModel>>(travelOfferings);
+            return View(travelOfferingViewModel);
         }
 
         // GET: TravelOfferings/Details/5
@@ -35,8 +39,9 @@ namespace TravelAgency.Controllers
             {
                 return NotFound();
             }
+            var travelOfferingViewModel = _mapper.Map<TravelOfferingViewModel>(travelOffering);
 
-            return View(travelOffering);
+            return View(travelOfferingViewModel);
         }
 
         // GET: TravelOfferings/Create
@@ -52,16 +57,7 @@ namespace TravelAgency.Controllers
         {
             if (ModelState.IsValid)
             {
-                TravelOffering travelOffering = new TravelOffering
-                {
-                    Id = travelOfferingViewModel.Id,
-                    Name = travelOfferingViewModel.Name,
-                    Destination = travelOfferingViewModel.Destination,
-                    StartDate = travelOfferingViewModel.StartDate,
-                    EndDate = travelOfferingViewModel.EndDate,
-                    Price = travelOfferingViewModel.Price,
-                    Description = travelOfferingViewModel.Description
-                };
+                TravelOffering travelOffering = _mapper.Map<TravelOffering>(travelOfferingViewModel);
 
                 await _travelAgencyService.AddAsync(travelOffering);
                 return RedirectToAction(nameof(Index));
@@ -82,7 +78,8 @@ namespace TravelAgency.Controllers
             {
                 return NotFound();
             }
-            return View(travelOffering);
+            var travelOfferingViewModel = _mapper.Map<TravelOfferingViewModel>(travelOffering);
+            return View(travelOfferingViewModel);
         }
 
         // POST: TravelOfferings/Edit/5
@@ -97,16 +94,7 @@ namespace TravelAgency.Controllers
 
             if (ModelState.IsValid)
             {
-                TravelOffering travelOffering = new TravelOffering
-                {
-                    Id = travelOfferingViewModel.Id,
-                    Name = travelOfferingViewModel.Name,
-                    Destination = travelOfferingViewModel.Destination,
-                    StartDate = travelOfferingViewModel.StartDate,
-                    EndDate = travelOfferingViewModel.EndDate,
-                    Price = travelOfferingViewModel.Price,
-                    Description = travelOfferingViewModel.Description
-                };
+                TravelOffering travelOffering = _mapper.Map<TravelOffering>(travelOfferingViewModel);
 
                 try
                 {
@@ -135,7 +123,9 @@ namespace TravelAgency.Controllers
                 return NotFound();
             }
 
-            return View(travelOffering);
+            var travelOfferingViewModel = _mapper.Map<TravelOfferingViewModel>(travelOffering);
+
+            return View(travelOfferingViewModel);
         }
 
         // POST: TravelOfferings/Delete/5
@@ -156,14 +146,16 @@ namespace TravelAgency.Controllers
             }
 
             var searchResults = await _travelAgencyService.SearchAsync(searchString);
-            return View("Index", searchResults);
+            var searchResultViewModels = _mapper.Map<IEnumerable<TravelOfferingViewModel>>(searchResults);
+            return View("Index", searchResultViewModels);
         }
 
-        // GET: TravelOfferings/Sort
         public async Task<IActionResult> Sort(string sortOrder)
         {
             var sortedResults = await _travelAgencyService.SortAsync(sortOrder);
-            return View("Index", sortedResults);
+            var sortedResultViewModels = _mapper.Map<IEnumerable<TravelOfferingViewModel>>(sortedResults);
+            return View("Index", sortedResultViewModels);
         }
+
     }
 }

@@ -7,6 +7,7 @@ using TravelAgency.Data;
 using TravelAgency.Repository;
 using TravelAgency.Controllers;
 using TravelAgency.Services;
+using AutoMapper;
 
 namespace TravelAgency
 {
@@ -23,7 +24,8 @@ namespace TravelAgency
             builder.Services.AddControllersWithViews();
             builder.Services.AddScoped<ITravelAgencyService, TravelAgencyService>();
             builder.Services.AddScoped<ITravelOfferingsRepository, TravelOfferingsRepository>();
-            
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 
 
             var app = builder.Build();
