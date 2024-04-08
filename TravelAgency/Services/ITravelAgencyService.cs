@@ -1,4 +1,5 @@
 ﻿using TravelAgency.Models;
+using TravelAgency.ViewModels;
 
 namespace TravelAgency.Services
 {

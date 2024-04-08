@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TravelAgency.Models;
 using TravelAgency.Services;
+using TravelAgency.ViewModels;
 
 namespace TravelAgency.Controllers
 {
@@ -47,14 +48,25 @@ namespace TravelAgency.Controllers
         // POST: TravelOfferings/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Destination,StartDate,EndDate,Price,Description")] TravelOffering travelOffering)
+        public async Task<IActionResult> Create([Bind("Id,Name,Destination,StartDate,EndDate,Price,Description")] TravelOfferingViewModel travelOfferingViewModel)
         {
             if (ModelState.IsValid)
             {
+                TravelOffering travelOffering = new TravelOffering
+                {
+                    Id = travelOfferingViewModel.Id,
+                    Name = travelOfferingViewModel.Name,
+                    Destination = travelOfferingViewModel.Destination,
+                    StartDate = travelOfferingViewModel.StartDate,
+                    EndDate = travelOfferingViewModel.EndDate,
+                    Price = travelOfferingViewModel.Price,
+                    Description = travelOfferingViewModel.Description
+                };
+
                 await _travelAgencyService.AddAsync(travelOffering);
                 return RedirectToAction(nameof(Index));
             }
-            return View(travelOffering);
+            return View(travelOfferingViewModel);
         }
 
         // GET: TravelOfferings/Edit/5
@@ -76,15 +88,26 @@ namespace TravelAgency.Controllers
         // POST: TravelOfferings/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Destination,StartDate,EndDate,Price,Description")] TravelOffering travelOffering)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Destination,StartDate,EndDate,Price,Description")] TravelOfferingViewModel travelOfferingViewModel)
         {
-            if (id != travelOffering.Id)
+            if (id != travelOfferingViewModel.Id)
             {
                 return NotFound();
             }
 
             if (ModelState.IsValid)
             {
+                TravelOffering travelOffering = new TravelOffering
+                {
+                    Id = travelOfferingViewModel.Id,
+                    Name = travelOfferingViewModel.Name,
+                    Destination = travelOfferingViewModel.Destination,
+                    StartDate = travelOfferingViewModel.StartDate,
+                    EndDate = travelOfferingViewModel.EndDate,
+                    Price = travelOfferingViewModel.Price,
+                    Description = travelOfferingViewModel.Description
+                };
+
                 try
                 {
                     await _travelAgencyService.UpdateAsync(travelOffering);
@@ -95,7 +118,7 @@ namespace TravelAgency.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(travelOffering);
+            return View(travelOfferingViewModel);
         }
 
         // GET: TravelOfferings/Delete/5

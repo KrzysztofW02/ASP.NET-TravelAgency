@@ -75,14 +75,13 @@
 
 <br />
 
-<!-- Sortowanie -->
+
 <form asp-controller="TravelOfferings" asp-action="Sort" method="get" class="form-inline">
     <div class="d-flex align-items-center">
         <div class="form-group mr-2">
             <select class="form-control form-control-sm" id="sortOrder" name="sortOrder;">
                 <option value="Name">Name</option>
                 <option value="Destination">Destination</option>
-                <!-- Dodaj inne opcje sortowania, jeśli są dostępne -->
             </select>
         </div>
         <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 5px;">Sort</button>
