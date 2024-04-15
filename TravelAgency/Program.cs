@@ -8,6 +8,8 @@ using TravelAgency.Repository;
 using TravelAgency.Controllers;
 using TravelAgency.Services;
 using AutoMapper;
+using FluentValidation;
+using System;
 
 namespace TravelAgency
 {
@@ -25,6 +27,7 @@ namespace TravelAgency
             builder.Services.AddScoped<ITravelAgencyService, TravelAgencyService>();
             builder.Services.AddScoped<ITravelOfferingsRepository, TravelOfferingsRepository>();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            builder.Services.AddScoped<IValidator<TravelOffering>, TravelOfferingValidator>();
 
 
 

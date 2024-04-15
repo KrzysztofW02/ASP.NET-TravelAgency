@@ -1,5 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using AutoMapper;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using TravelAgency.Models;
 using TravelAgency.Services;
@@ -11,19 +15,21 @@ namespace TravelAgency.Controllers
     {
         private readonly ITravelAgencyService _travelAgencyService;
         private readonly IMapper _mapper;
+        private readonly IValidator<TravelOffering> _validator;
 
-        public TravelOfferingsController(ITravelAgencyService travelOfferingsService, IMapper mapper)
+        public TravelOfferingsController(ITravelAgencyService travelOfferingsService, IMapper mapper, IValidator<TravelOffering> validator)
         {
             _travelAgencyService = travelOfferingsService;
             _mapper = mapper;
+            _validator = validator;
         }
 
         // GET: TravelOfferings
         public async Task<IActionResult> Index()
         {
             var travelOfferings = await _travelAgencyService.GetAllAsync();
-            var travelOfferingViewModel = _mapper.Map<IEnumerable<TravelOfferingViewModel>>(travelOfferings);
-            return View(travelOfferingViewModel);
+            var travelOfferingViewModels = _mapper.Map<IEnumerable<TravelOfferingViewModel>>(travelOfferings);
+            return View(travelOfferingViewModels);
         }
 
         // GET: TravelOfferings/Details/5
@@ -59,9 +65,22 @@ namespace TravelAgency.Controllers
             {
                 TravelOffering travelOffering = _mapper.Map<TravelOffering>(travelOfferingViewModel);
 
-                await _travelAgencyService.AddAsync(travelOffering);
-                return RedirectToAction(nameof(Index));
+                var validationResult = await _validator.ValidateAsync(travelOffering);
+
+                if (validationResult.IsValid)
+                {
+                    await _travelAgencyService.AddAsync(travelOffering);
+                    return RedirectToAction(nameof(Index));
+                }
+                else
+                {
+                    foreach (var error in validationResult.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.ErrorMessage);
+                    }
+                }
             }
+
             return View(travelOfferingViewModel);
         }
 
@@ -96,16 +115,29 @@ namespace TravelAgency.Controllers
             {
                 TravelOffering travelOffering = _mapper.Map<TravelOffering>(travelOfferingViewModel);
 
-                try
+                var validationResult = await _validator.ValidateAsync(travelOffering);
+
+                if (validationResult.IsValid)
                 {
-                    await _travelAgencyService.UpdateAsync(travelOffering);
+                    try
+                    {
+                        await _travelAgencyService.UpdateAsync(travelOffering);
+                    }
+                    catch
+                    {
+                        return NotFound();
+                    }
+                    return RedirectToAction(nameof(Index));
                 }
-                catch
+                else
                 {
-                    return NotFound();
+                    foreach (var error in validationResult.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.ErrorMessage);
+                    }
                 }
-                return RedirectToAction(nameof(Index));
             }
+
             return View(travelOfferingViewModel);
         }
 
@@ -156,6 +188,5 @@ namespace TravelAgency.Controllers
             var sortedResultViewModels = _mapper.Map<IEnumerable<TravelOfferingViewModel>>(sortedResults);
             return View("Index", sortedResultViewModels);
         }
-
     }
 }
