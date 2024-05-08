@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+
 
 namespace TravelAgency.Models
 {
-    public class TravelAgencyDbContext : DbContext
+    public class TravelAgencyDbContext : IdentityDbContext
     {
         public TravelAgencyDbContext(DbContextOptions<TravelAgencyDbContext> options)
             : base(options)
