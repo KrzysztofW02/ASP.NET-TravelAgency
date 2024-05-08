@@ -1,10 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Identity;
 
 namespace TravelAgency.Models
 {
-    public class TravelAgencyDbContext : IdentityDbContext
+    public class TravelAgencyDbContext : IdentityDbContext<IdentityUser>
     {
         public TravelAgencyDbContext(DbContextOptions<TravelAgencyDbContext> options)
             : base(options)
@@ -19,6 +19,8 @@ namespace TravelAgency.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);  
+
             modelBuilder.Entity<ClientTravelOffering>()
                 .HasKey(cto => new { cto.ClientId, cto.TravelOfferingId });
 
