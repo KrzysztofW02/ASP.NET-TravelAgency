@@ -16,14 +16,19 @@ namespace TravelAgency
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddDbContext<TravelAgencyDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<TravelAgencyDbContext>();
+            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            .AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<TravelAgencyDbContext>()
+            .AddDefaultTokenProviders()
+            .AddDefaultUI();
+
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddControllersWithViews();
@@ -31,6 +36,8 @@ namespace TravelAgency
             builder.Services.AddScoped<ITravelOfferingsRepository, TravelOfferingsRepository>();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddScoped<IValidator<TravelOffering>, TravelOfferingValidator>();
+
+
 
             var app = builder.Build();
 
@@ -41,10 +48,32 @@ namespace TravelAgency
                 {
                     var context = services.GetRequiredService<TravelAgencyDbContext>();
                     DbInitializer.Initialize(context);
+
+                    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+                    var roles = new[] { "Administrator", "Manager", "Member" };
+
+                    foreach (var role in roles)
+                    {
+                        if (!await roleManager.RoleExistsAsync(role))
+                        {
+                            await roleManager.CreateAsync(new IdentityRole(role));
+                        }
+                    }
+
+                    var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+                    var user = await userManager.FindByEmailAsync("Admin@UBBTravelAgency.pl");
+                    if (user != null && !await userManager.IsInRoleAsync(user, "Administrator"))
+                    {
+                        await userManager.AddToRoleAsync(user, "Administrator");
+                    }
+                    user = await userManager.FindByEmailAsync("asdadas@interia.pl");
+                    if(user != null && !await userManager.IsInRoleAsync(user, "Manager"))
+                    {
+                        await userManager.AddToRoleAsync(user, "Manager");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    
                     var logger = services.GetRequiredService<ILogger<Program>>();
                     logger.LogError(ex, "An error occurred creating the database.");
                 }
@@ -61,6 +90,8 @@ namespace TravelAgency
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
             

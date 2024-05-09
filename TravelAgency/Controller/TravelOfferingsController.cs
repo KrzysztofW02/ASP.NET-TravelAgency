@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TravelAgency.Models;
 using TravelAgency.Services;
@@ -11,6 +12,7 @@ using TravelAgency.ViewModels;
 
 namespace TravelAgency.Controllers
 {
+    [Authorize]
     public class TravelOfferingsController : Controller
     {
         private readonly ITravelAgencyService _travelAgencyService;
@@ -57,6 +59,7 @@ namespace TravelAgency.Controllers
         }
 
         // POST: TravelOfferings/Create
+        [Authorize(Roles = "Administrator")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name,Destination,StartDate,EndDate,Price,Description")] TravelOfferingViewModel travelOfferingViewModel)
@@ -102,6 +105,7 @@ namespace TravelAgency.Controllers
         }
 
         // POST: TravelOfferings/Edit/5
+        [Authorize(Roles = "Administrator")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Destination,StartDate,EndDate,Price,Description")] TravelOfferingViewModel travelOfferingViewModel)
@@ -161,6 +165,7 @@ namespace TravelAgency.Controllers
         }
 
         // POST: TravelOfferings/Delete/5
+        [Authorize(Roles = "Administrator")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
