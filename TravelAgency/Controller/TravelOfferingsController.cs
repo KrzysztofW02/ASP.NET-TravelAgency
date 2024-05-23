@@ -105,7 +105,7 @@ namespace TravelAgency.Controllers
         }
 
         // POST: TravelOfferings/Edit/5
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Roles = "Manager")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Destination,StartDate,EndDate,Price,Description")] TravelOfferingViewModel travelOfferingViewModel)
