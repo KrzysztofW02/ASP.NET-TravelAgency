@@ -1,0 +1,20 @@
+﻿@model TravelAgency.ViewModels.ManageUserRolesViewModel
+
+@{
+    ViewData["Title"] = "Manage User Roles";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<form asp-action="ManageUserRoles" method="post">
+    <input type="hidden" asp-for="UserId" />
+
+    @foreach (var role in Model.Roles)
+    {
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="SelectedRoles" value="@role" @(Model.UserRoles.Contains(role) ? "checked" : "") />
+            <label class="form-check-label">@role</label>
+        </div>
+    }
+
+    <button type="submit" class="btn btn-primary">Update Roles</button>
+</form>
