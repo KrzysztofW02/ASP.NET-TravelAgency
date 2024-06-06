@@ -34,6 +34,7 @@ public class AdministrationController : Controller
         var model = new ManageUserRolesViewModel
         {
             UserId = userId,
+            UserEmail = user.Email,
             UserRoles = userRoles,
             Roles = _roleManager.Roles.Select(r => r.Name)
         };
@@ -48,7 +49,6 @@ public class AdministrationController : Controller
 
         if (user == null)
         {
-            ViewBag.ErrorMessage = $"User with Id = {model.UserId} cannot be found";
             return View("NotFound");
         }
 

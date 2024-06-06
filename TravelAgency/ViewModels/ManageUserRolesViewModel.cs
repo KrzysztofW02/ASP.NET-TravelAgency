@@ -3,9 +3,9 @@
     public class ManageUserRolesViewModel
     {
         public string UserId { get; set; }
+        public string UserEmail { get; set; } 
         public IEnumerable<string> UserRoles { get; set; }
         public IEnumerable<string> Roles { get; set; }
         public IEnumerable<string> SelectedRoles { get; set; }
     }
-
 }
