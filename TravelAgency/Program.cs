@@ -23,9 +23,18 @@ namespace TravelAgency
             builder.Services.AddDbContext<TravelAgencyDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+            {
+                options.SignIn.RequireConfirmedAccount = true;
+                options.Password.RequiredLength = 6;
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+            })
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<TravelAgencyDbContext>()
+            .AddPasswordValidator<CustomPasswordValidator>()
             .AddDefaultTokenProviders()
             .AddDefaultUI();
 
