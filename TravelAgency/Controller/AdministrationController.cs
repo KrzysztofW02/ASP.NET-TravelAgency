@@ -22,6 +22,11 @@ public class AdministrationController : Controller
         return View(users);
     }
 
+    public IActionResult AddUser()
+    {
+        return View();
+    }
+
     public async Task<IActionResult> ManageUserRoles(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -71,6 +76,35 @@ public class AdministrationController : Controller
         }
 
         return RedirectToAction("Index");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AddUser(AddUserViewModel model)
+    {
+        if (ModelState.IsValid)
+        {
+            var user = new IdentityUser
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                EmailConfirmed = true 
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ForcePasswordChange", "true"));
+
+                return RedirectToAction("Index");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+        }
+        return View(model);
     }
 
     [HttpPost]

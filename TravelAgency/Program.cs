@@ -103,7 +103,32 @@ namespace TravelAgency
             app.UseAuthentication();
 
             app.UseAuthorization();
-            
+
+            app.Use(async (context, next) =>
+            {
+                var userManager = context.RequestServices.GetRequiredService<UserManager<IdentityUser>>();
+                var signInManager = context.RequestServices.GetRequiredService<SignInManager<IdentityUser>>();
+                var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+                if (context.User.Identity.IsAuthenticated)
+                {
+                    var user = await userManager.GetUserAsync(context.User);
+                    if (user != null)
+                    {
+                        var forcePasswordChangeClaim = (await userManager.GetClaimsAsync(user))
+                            .FirstOrDefault(c => c.Type == "ForcePasswordChange" && c.Value == "true");
+
+                        if (forcePasswordChangeClaim != null && !context.Request.Path.StartsWithSegments("/Identity/Account/Manage/ChangePassword"))
+                        {
+                            context.Response.Redirect("/Identity/Account/Manage/ChangePassword");
+                            return;
+                        }
+                    }
+                }
+
+                await next();
+            });
+
             app.MapRazorPages();
 
             app.MapControllerRoute(
