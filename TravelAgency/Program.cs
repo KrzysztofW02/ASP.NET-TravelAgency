@@ -70,7 +70,7 @@ namespace TravelAgency
                     }
 
                     var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
-                    var user = await userManager.FindByEmailAsync("Admin@UBBTravelAgency.pl");
+                    var user = await userManager.FindByEmailAsync("Admin@admin.pl");
                     if (user != null && !await userManager.IsInRoleAsync(user, "Administrator"))
                     {
                         await userManager.AddToRoleAsync(user, "Administrator");

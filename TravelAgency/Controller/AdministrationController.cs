@@ -3,17 +3,20 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using TravelAgency.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using TravelAgency.Models;
 
 [Authorize(Roles = "Administrator")]
 public class AdministrationController : Controller
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly TravelAgencyDbContext _context;
 
-    public AdministrationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
+    public AdministrationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, TravelAgencyDbContext context )
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _context = context;
     }
 
     public async Task<IActionResult> Index()
@@ -45,6 +48,46 @@ public class AdministrationController : Controller
         };
 
         return View(model);
+    }
+    public async Task<IActionResult> ManageUserPassword(string userId)
+    {
+        var userPasswordSettings = _context.UserPasswordSettings.FirstOrDefault(x => x.UserId == userId);
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var model = new ManageUserPasswordViewModel
+        {
+            UserId = userId,
+            UserEmail = user.Email,
+            PasswordExpirationDays = userPasswordSettings.PasswordExpirationDays,
+            PasswordHistoryLimit = userPasswordSettings.PasswordHistoryLimit,
+        };
+
+        return View(model);
+    }
+    [HttpPost]
+    public async Task<IActionResult> ManageUserPassword(ManageUserPasswordViewModel model)
+    {
+        var user = await _userManager.FindByIdAsync(model.UserId);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var userPasswordSettings = _context.UserPasswordSettings.FirstOrDefault(x => x.UserId == model.UserId);
+        userPasswordSettings.PasswordExpirationDays = model.PasswordExpirationDays;
+        userPasswordSettings.PasswordHistoryLimit = model.PasswordHistoryLimit;
+        userPasswordSettings.IsPasswordChangeRequired = model.IsPasswordChangeRequired;
+        userPasswordSettings.PasswordLengthRequired = model.PasswordLengthRequired;
+        userPasswordSettings.PasswordNumbersRequired = model.PasswordNumbersRequired;
+
+        _context.UserPasswordSettings.Update(userPasswordSettings);
+        _context.SaveChanges();
+
+        return RedirectToAction("Index");
     }
 
     [HttpPost]

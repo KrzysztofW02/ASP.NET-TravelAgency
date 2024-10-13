@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using TravelAgency.Models;
 
 namespace TravelAgency.Areas.Identity.Pages.Account
 {
@@ -29,13 +30,15 @@ namespace TravelAgency.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<IdentityUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly TravelAgencyDbContext _context;
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
             IUserStore<IdentityUser> userStore,
             SignInManager<IdentityUser> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            TravelAgencyDbContext context)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -43,6 +46,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            _context = context;
         }
 
         /// <summary>
@@ -136,11 +140,15 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
+                        _context.UserPasswordSettings.Add(new UserPasswordSettings { UserId = user.Id, IsPasswordChangeRequired = true, PasswordExpirationDays = 90, PasswordHistoryLimit = 2 , PasswordLengthRequired = 6, PasswordNumbersRequired=2});
+                        _context.SaveChanges();
                         return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
                     }
                     else
                     {
                         await _signInManager.SignInAsync(user, isPersistent: false);
+                        _context.UserPasswordSettings.Add(new UserPasswordSettings { UserId = user.Id, IsPasswordChangeRequired = true, PasswordExpirationDays = 90, PasswordHistoryLimit = 2 , PasswordLengthRequired = 6, PasswordNumbersRequired = 2});
+                        _context.SaveChanges();
                         return LocalRedirect(returnUrl);
                     }
                 }

@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
+using TravelAgency.Models;
 
 namespace TravelAgency.Areas.Identity.Pages.Account.Manage
 {
@@ -17,15 +19,19 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly ILogger<ChangePasswordModel> _logger;
+        private readonly TravelAgencyDbContext _context;
 
         public ChangePasswordModel(
             UserManager<IdentityUser> userManager,
             SignInManager<IdentityUser> signInManager,
-            ILogger<ChangePasswordModel> logger)
+            ILogger<ChangePasswordModel> logger,
+            TravelAgencyDbContext context)
+            
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
+            _context = context;
         }
 
         /// <summary>
@@ -107,6 +113,28 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
+            var passwordSettings = _context.UserPasswordSettings.First(x => x.UserId == user.Id);
+            var UserPasswordHistory = _context.PasswordHistories.Where(p => p.UserId == user.Id).OrderBy(x => x.DateChanged).Take(passwordSettings.PasswordHistoryLimit);
+            foreach(var password in UserPasswordHistory)
+            {
+                var result  = _userManager.PasswordHasher.VerifyHashedPassword(user, password.PasswordHash, Input.NewPassword);
+                if (result == PasswordVerificationResult.Success)
+                {
+                    ModelState.AddModelError(string.Empty, "You cannot use a password that you have used before.");
+                    return Page();
+                }
+            }
+            if(passwordSettings.PasswordLengthRequired > Input.NewPassword.Length)
+            {
+                ModelState.AddModelError(string.Empty, $"The new password must be at least {passwordSettings.PasswordLengthRequired} characters long.");
+                return Page();
+            }
+            if(passwordSettings.PasswordNumbersRequired > Input.NewPassword.Count(char.IsDigit))
+            {
+                ModelState.AddModelError(string.Empty, $"The new password must have at least {passwordSettings.PasswordNumbersRequired} digits.");
+                return Page();
+            }
+
             var changePasswordResult = await _userManager.ChangePasswordAsync(user, Input.OldPassword, Input.NewPassword);
             if (!changePasswordResult.Succeeded)
             {
@@ -127,6 +155,14 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
             await _signInManager.RefreshSignInAsync(user);
             _logger.LogInformation("User changed their password successfully.");
             StatusMessage = "Your password has been changed.";
+
+            _context.PasswordHistories.Add(new PasswordHistory
+            {
+                PasswordHash = _userManager.PasswordHasher.HashPassword(user, Input.NewPassword),
+                DateChanged = DateTime.Now,
+                UserId = user.Id
+            });
+            _context.SaveChanges();
 
             return RedirectToPage();
         }
