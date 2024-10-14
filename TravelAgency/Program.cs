@@ -50,6 +50,7 @@ namespace TravelAgency
 
             var app = builder.Build();
 
+
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
@@ -70,7 +71,7 @@ namespace TravelAgency
                     }
 
                     var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
-                    var user = await userManager.FindByEmailAsync("Admin@UBBTravelAgency.pl");
+                    var user = await userManager.FindByEmailAsync("Admin@admin.pl");
                     if (user != null && !await userManager.IsInRoleAsync(user, "Administrator"))
                     {
                         await userManager.AddToRoleAsync(user, "Administrator");
@@ -98,12 +99,61 @@ namespace TravelAgency
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
+
             app.UseRouting();
 
             app.UseAuthentication();
 
             app.UseAuthorization();
-            
+
+            app.Use(async (context, next) =>
+            {
+                var userManager = context.RequestServices.GetRequiredService<UserManager<IdentityUser>>();
+                var signInManager = context.RequestServices.GetRequiredService<SignInManager<IdentityUser>>();
+                var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+                if (context.User.Identity.IsAuthenticated)
+                {
+                    var user = await userManager.GetUserAsync(context.User);
+                    if (user != null)
+                    {
+                        using (var scope = app.Services.CreateScope())
+                        {
+                            var dbContext = scope.ServiceProvider.GetRequiredService<TravelAgencyDbContext>();
+                            var userPasswordSettings = dbContext.UserPasswordSettings.FirstOrDefault(x => x.UserId == user.Id);
+
+                            var userPasswordHistory = dbContext.PasswordHistories
+                            .Where(p => p.UserId == user.Id)
+                            .OrderByDescending(x => x.DateChanged)
+                            .FirstOrDefault();
+
+                            var daysWithCurrentPassword = (DateTime.Now - userPasswordHistory.DateChanged ).TotalDays;
+                            if (daysWithCurrentPassword >= userPasswordSettings.PasswordExpirationDays)
+                            {
+                                context.Response.Redirect("/Identity/Account/Manage/ChangePassword");
+                                return;
+                            }
+
+                            if (userPasswordSettings.IsPasswordChangeRequired && !context.Request.Path.StartsWithSegments("/Identity/Account/Manage/ChangePassword"))
+                            {
+                                context.Response.Redirect("/Identity/Account/Manage/ChangePassword");
+                                return;
+                            }
+                        }
+                        var forcePasswordChangeClaim = (await userManager.GetClaimsAsync(user))
+                            .FirstOrDefault(c => c.Type == "ForcePasswordChange" && c.Value == "true");
+
+                        if (forcePasswordChangeClaim != null && !context.Request.Path.StartsWithSegments("/Identity/Account/Manage/ChangePassword"))
+                        {
+                            context.Response.Redirect("/Identity/Account/Manage/ChangePassword");
+                            return;
+                        }
+                    }
+                }
+
+                await next();
+            });
+
             app.MapRazorPages();
 
             app.MapControllerRoute(

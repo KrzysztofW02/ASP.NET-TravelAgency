@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using TravelAgency.Models;
 
 namespace TravelAgency.Areas.Identity.Pages.Account
 {
@@ -21,11 +22,13 @@ namespace TravelAgency.Areas.Identity.Pages.Account
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
+        private readonly TravelAgencyDbContext _context;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, TravelAgencyDbContext context)
         {
             _signInManager = signInManager;
             _logger = logger;
+            _context = context;
         }
 
         /// <summary>
@@ -106,12 +109,26 @@ namespace TravelAgency.Areas.Identity.Pages.Account
             returnUrl ??= Url.Content("~/");
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            var signInUser = _signInManager.UserManager.Users.FirstOrDefault(x => x.Email == Input.Email);
 
             if (ModelState.IsValid)
             {
+
+                if (signInUser == null)
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid login attempt. User does not exist.");
+                    return Page();
+                }
+                var user = _context.UserPasswordSettings.First(x => x.UserId == signInUser.Id);
                 // This doesn't count login failures towards account lockout
                 // To enable password failures to trigger account lockout, set lockoutOnFailure: true
                 var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                // Check if password change is required
+                if (user.IsPasswordChangeRequired)
+                {
+                    // Redirect to password change page
+                    return RedirectToPage("/Account/Manage/ChangePassword", new { userId = user.Id });
+                }
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
