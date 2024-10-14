@@ -112,10 +112,6 @@ namespace TravelAgency
                 var signInManager = context.RequestServices.GetRequiredService<SignInManager<IdentityUser>>();
                 var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
 
-
-
-
-
                 if (context.User.Identity.IsAuthenticated)
                 {
                     var user = await userManager.GetUserAsync(context.User);
@@ -126,7 +122,11 @@ namespace TravelAgency
                             var dbContext = scope.ServiceProvider.GetRequiredService<TravelAgencyDbContext>();
                             var userPasswordSettings = dbContext.UserPasswordSettings.FirstOrDefault(x => x.UserId == user.Id);
 
-                            var userPasswordHistory = dbContext.PasswordHistories.Where(p => p.UserId == user.Id).OrderByDescending(x => x.DateChanged).First();
+                            var userPasswordHistory = dbContext.PasswordHistories
+                            .Where(p => p.UserId == user.Id)
+                            .OrderByDescending(x => x.DateChanged)
+                            .FirstOrDefault();
+
                             var daysWithCurrentPassword = (DateTime.Now - userPasswordHistory.DateChanged ).TotalDays;
                             if (daysWithCurrentPassword >= userPasswordSettings.PasswordExpirationDays)
                             {

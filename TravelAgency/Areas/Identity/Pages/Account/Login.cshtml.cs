@@ -113,6 +113,12 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
+
+                if (signInUser == null)
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid login attempt. User does not exist.");
+                    return Page();
+                }
                 var user = _context.UserPasswordSettings.First(x => x.UserId == signInUser.Id);
                 // This doesn't count login failures towards account lockout
                 // To enable password failures to trigger account lockout, set lockoutOnFailure: true
