@@ -162,6 +162,8 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
                 DateChanged = DateTime.Now,
                 UserId = user.Id
             });
+            passwordSettings.IsPasswordChangeRequired = false;
+            _context.UserPasswordSettings.Update(passwordSettings);
             _context.SaveChanges();
 
             return RedirectToPage();
