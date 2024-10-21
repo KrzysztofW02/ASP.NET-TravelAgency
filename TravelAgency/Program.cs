@@ -31,12 +31,34 @@ namespace TravelAgency
                 options.Password.RequireLowercase = true;
                 options.Password.RequireUppercase = true;
                 options.Password.RequireNonAlphanumeric = true;
+
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15); 
+                options.Lockout.MaxFailedAccessAttempts = 5; 
+                options.Lockout.AllowedForNewUsers = true;  
             })
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<TravelAgencyDbContext>()
             .AddPasswordValidator<CustomPasswordValidator>()
             .AddDefaultTokenProviders()
             .AddDefaultUI();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(15); 
+                options.SlidingExpiration = false; 
+                options.LoginPath = "/Identity/Account/Login"; 
+                options.LogoutPath = "/Identity/Account/Logout"; 
+                options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+            });
+
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(15); 
+                options.Cookie.HttpOnly = true; 
+                options.Cookie.IsEssential = true; 
+            });
+
+
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -45,8 +67,6 @@ namespace TravelAgency
             builder.Services.AddScoped<ITravelOfferingsRepository, TravelOfferingsRepository>();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddScoped<IValidator<TravelOffering>, TravelOfferingValidator>();
-
-
 
             var app = builder.Build();
 
@@ -153,6 +173,8 @@ namespace TravelAgency
 
                 await next();
             });
+
+            app.UseSession();
 
             app.MapRazorPages();
 

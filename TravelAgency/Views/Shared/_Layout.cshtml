@@ -109,6 +109,15 @@
     <script src="~/vendor/jquery-easing/jquery.easing.min.js"></script>
     <script src="~/js/sb-admin-2.min.js"></script>
 
+    <script type="text/javascript">
+        var sessionTimeout = 60 * 150000; //15 minutes
+
+        setTimeout(function () {
+            alert('Your session has expired. You will be logged out.');
+            window.location.href = '/Identity/Account/Login'; 
+        }, sessionTimeout);
+    </script>
+    
     <script>
         $(function () {
             $('[data-toggle="tooltip"]').tooltip();

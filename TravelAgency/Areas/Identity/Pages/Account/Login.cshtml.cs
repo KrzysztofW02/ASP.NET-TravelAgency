@@ -96,7 +96,6 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
             returnUrl ??= Url.Content("~/");
 
-            // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
@@ -120,13 +119,9 @@ namespace TravelAgency.Areas.Identity.Pages.Account
                     return Page();
                 }
                 var user = _context.UserPasswordSettings.First(x => x.UserId == signInUser.Id);
-                // This doesn't count login failures towards account lockout
-                // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-                // Check if password change is required
+                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
                 if (user.IsPasswordChangeRequired)
                 {
-                    // Redirect to password change page
                     return RedirectToPage("/Account/Manage/ChangePassword", new { userId = user.Id });
                 }
                 if (result.Succeeded)
@@ -141,6 +136,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account
                 if (result.IsLockedOut)
                 {
                     _logger.LogWarning("User account locked out.");
+                    ModelState.AddModelError(string.Empty, "Your account has been locked for 15 minutes due to too many failed login attempts.");
                     return RedirectToPage("./Lockout");
                 }
                 else
@@ -150,7 +146,6 @@ namespace TravelAgency.Areas.Identity.Pages.Account
                 }
             }
 
-            // If we got this far, something failed, redisplay form
             return Page();
         }
     }
