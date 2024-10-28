@@ -73,6 +73,10 @@ public class AdministrationController : Controller
             UserEmail = user.Email,
             PasswordExpirationDays = userPasswordSettings.PasswordExpirationDays,
             PasswordHistoryLimit = userPasswordSettings.PasswordHistoryLimit,
+            IsPasswordChangeRequired = userPasswordSettings.IsPasswordChangeRequired,
+            PasswordLengthRequired = userPasswordSettings.PasswordLengthRequired,
+            PasswordNumbersRequired = userPasswordSettings.PasswordNumbersRequired,
+            OneTimePasswordActive = userPasswordSettings.OneTimePasswordActive
         };
 
         return View(model);
@@ -92,6 +96,7 @@ public class AdministrationController : Controller
         userPasswordSettings.IsPasswordChangeRequired = model.IsPasswordChangeRequired;
         userPasswordSettings.PasswordLengthRequired = model.PasswordLengthRequired;
         userPasswordSettings.PasswordNumbersRequired = model.PasswordNumbersRequired;
+        userPasswordSettings.OneTimePasswordActive = model.OneTimePasswordActive;
 
         _context.UserPasswordSettings.Update(userPasswordSettings);
         _context.SaveChanges();

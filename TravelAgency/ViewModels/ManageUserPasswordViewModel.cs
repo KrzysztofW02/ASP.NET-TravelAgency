@@ -9,5 +9,6 @@
         public int PasswordNumbersRequired { get; set; }
         public int PasswordLengthRequired { get; set; }
         public bool IsPasswordChangeRequired { get; set; }
+        public bool OneTimePasswordActive { get; set; }
     }
 }
