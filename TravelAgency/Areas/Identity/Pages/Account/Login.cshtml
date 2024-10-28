@@ -23,6 +23,17 @@
                     <label asp-for="Input.Password" class="form-label">Password</label>
                     <span asp-validation-for="Input.Password" class="text-danger"></span>
                 </div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.OneTimePassword" class="form-control" aria-required="true" placeholder="One-Time Password" />
+                    <label asp-for="Input.OneTimePassword" class="form-label">One-Time Password</label>
+                    <span asp-validation-for="Input.OneTimePassword" class="text-danger"></span>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="text" value="@Model.X" class="form-control" readonly />
+                    <label>Value of X (for OTP calculation)</label>
+                </div>
+
                 <div class="checkbox mb-3">
                     <label asp-for="Input.RememberMe" class="form-label">
                         <input class="form-check-input" asp-for="Input.RememberMe" />
@@ -55,8 +66,10 @@
                 {
                     <div>
                         <p>
-                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
-                            about setting up this ASP.NET application to support logging in via external services</a>.
+                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">
+                                article
+                                about setting up this ASP.NET application to support logging in via external services
+                            </a>.
                         </p>
                     </div>
                 }
@@ -79,5 +92,9 @@
 </div>
 
 @section Scripts {
+    <script>
+        var calculatedOtp = "@ViewData["CalculatedOtp"]";
+        console.log("Calculated One-Time Password (OTP):", calculatedOtp);
+    </script>
     <partial name="_ValidationScriptsPartial" />
 }
