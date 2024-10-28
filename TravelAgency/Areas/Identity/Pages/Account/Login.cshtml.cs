@@ -139,7 +139,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
                 if (Math.Abs(Input.OneTimePassword - correctOneTimePassword) > 1)
                 {
-                    ModelState.AddModelError(string.Empty, "Invalid one-time password. Please enter a whole number close to the expected OTP.");
+                    ModelState.AddModelError(string.Empty, "Invalid login attempt. Login or password is inncorrect.");
                     return Page();
                 }
 
