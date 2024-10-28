@@ -147,6 +147,8 @@ namespace TravelAgency.Areas.Identity.Pages.Account
                     await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
                         $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
 
+                    _context.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = user.PasswordHash, DateChanged = DateTime.Now });
+
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
                         _context.UserPasswordSettings.Add(new UserPasswordSettings { UserId = user.Id, IsPasswordChangeRequired = false, PasswordExpirationDays = 90, PasswordHistoryLimit = 2 , PasswordLengthRequired = 6, PasswordNumbersRequired=2});

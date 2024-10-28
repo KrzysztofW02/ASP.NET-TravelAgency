@@ -12,7 +12,7 @@ public class AdministrationController : Controller
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly TravelAgencyDbContext _context;
 
-    public AdministrationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, TravelAgencyDbContext context )
+    public AdministrationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, TravelAgencyDbContext context)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -47,6 +47,15 @@ public class AdministrationController : Controller
             Roles = _roleManager.Roles.Select(r => r.Name)
         };
 
+        return View(model);
+    }
+    public async Task<IActionResult> UserLogs()
+    {
+        var logs = await _context.UserActivityLog.ToListAsync();
+        var model = new UserLoggsViewModel
+        {
+            _userLogs = logs
+        };
         return View(model);
     }
     public async Task<IActionResult> ManageUserPassword(string userId)
@@ -117,6 +126,7 @@ public class AdministrationController : Controller
             ModelState.AddModelError("", "Cannot add selected roles to user");
             return View(model);
         }
+        _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, $"User {user.Email} roles updated by administrator"));
 
         return RedirectToAction("Index");
     }
@@ -130,7 +140,7 @@ public class AdministrationController : Controller
             {
                 UserName = model.Email,
                 Email = model.Email,
-                EmailConfirmed = true 
+                EmailConfirmed = true
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -138,6 +148,7 @@ public class AdministrationController : Controller
             if (result.Succeeded)
             {
                 await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ForcePasswordChange", "true"));
+                _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, $"User {model.Email} created by administrator"));
 
                 return RedirectToAction("Index");
             }

@@ -113,7 +113,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
-            var passwordSettings = _context.UserPasswordSettings.First(x => x.UserId == user.Id);
+            var passwordSettings = _context.UserPasswordSettings.FirstOrDefault(x => x.UserId == user.Id);
             var UserPasswordHistory = _context.PasswordHistories.Where(p => p.UserId == user.Id).OrderBy(x => x.DateChanged).Take(passwordSettings.PasswordHistoryLimit);
             foreach(var password in UserPasswordHistory)
             {
@@ -164,6 +164,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
             });
             passwordSettings.IsPasswordChangeRequired = false;
             _context.UserPasswordSettings.Update(passwordSettings);
+            _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, "User logged in"));
             _context.SaveChanges();
 
             return RedirectToPage();

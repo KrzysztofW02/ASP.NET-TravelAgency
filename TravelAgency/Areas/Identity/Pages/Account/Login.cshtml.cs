@@ -154,6 +154,8 @@ namespace TravelAgency.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
+                    _context.UserActivityLog.Add(new UserActivityLog(signInUser.Id, signInUser.Email, "User logged in"));
+                    _context.SaveChanges();
                     return LocalRedirect(returnUrl);
                 }
 
@@ -171,6 +173,8 @@ namespace TravelAgency.Areas.Identity.Pages.Account
                 else
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    _context.UserActivityLog.Add(new UserActivityLog(signInUser.Id, signInUser.Email, "Invalid login attempt"));
+                    _context.SaveChanges();
                     return Page();
                 }
             }
