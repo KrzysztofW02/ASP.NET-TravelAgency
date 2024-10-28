@@ -18,6 +18,7 @@ namespace TravelAgency.Models
         public DbSet<Promotion> Promotions { get; set; }
         public DbSet<PasswordHistory> PasswordHistories { get; set; }
         public DbSet<UserPasswordSettings> UserPasswordSettings { get; set; }
+        public DbSet<UserActivityLog> UserActivityLog { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
