@@ -80,7 +80,7 @@ namespace TravelAgency
                     DbInitializer.Initialize(context);
 
                     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                    var roles = new[] { "Administrator", "Manager", "Member" };
+                    var roles = new[] { "Administrator", "Manager", "Member", "TravelAgent" };
 
                     foreach (var role in roles)
                     {
@@ -100,6 +100,16 @@ namespace TravelAgency
                     if(user != null && !await userManager.IsInRoleAsync(user, "Manager"))
                     {
                         await userManager.AddToRoleAsync(user, "Manager");
+                    }
+                    user = await userManager.FindByEmailAsync("user1@interia.pl");
+                    if (user != null && !await userManager.IsInRoleAsync(user, "Member"))
+                    {
+                        await userManager.AddToRoleAsync(user, "Member");
+                    }
+                    user = await userManager.FindByEmailAsync("TravelAgent@agent.pl");
+                    if (user != null && !await userManager.IsInRoleAsync(user, "TravelAgent"))
+                    {
+                        await userManager.AddToRoleAsync(user, "TravelAgent");
                     }
                 }
                 catch (Exception ex)
