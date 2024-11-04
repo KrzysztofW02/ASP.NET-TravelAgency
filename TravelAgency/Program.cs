@@ -156,8 +156,13 @@ namespace TravelAgency
                             .Where(p => p.UserId == user.Id)
                             .OrderByDescending(x => x.DateChanged)
                             .FirstOrDefault();
+                            var daysWithCurrentPassword = 0.0;
+                            var passwordExpirationDays = 30;
 
-                            var daysWithCurrentPassword = (DateTime.Now - userPasswordHistory.DateChanged ).TotalDays;
+                            if (userPasswordHistory != null)
+                            {
+                                daysWithCurrentPassword = (DateTime.Now - userPasswordHistory.DateChanged ).TotalDays;
+                            }
                             if (daysWithCurrentPassword >= userPasswordSettings.PasswordExpirationDays)
                             {
                                 context.Response.Redirect("/Identity/Account/Manage/ChangePassword");

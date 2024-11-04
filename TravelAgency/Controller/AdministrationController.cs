@@ -52,6 +52,7 @@ public class AdministrationController : Controller
     public async Task<IActionResult> UserLogs()
     {
         var logs = await _context.UserActivityLog.ToListAsync();
+        logs = logs.OrderByDescending(x => x.ActivityTime).ToList();
         var model = new UserLoggsViewModel
         {
             _userLogs = logs
@@ -126,12 +127,14 @@ public class AdministrationController : Controller
         model.SelectedRoles = model.SelectedRoles ?? new List<string>();
         result = await _userManager.AddToRolesAsync(user, model.SelectedRoles);
 
+        _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, $"User {user.Email} roles updated by administrator"));
+        _context.SaveChanges();
+
         if (!result.Succeeded)
         {
             ModelState.AddModelError("", "Cannot add selected roles to user");
             return View(model);
         }
-        _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, $"User {user.Email} roles updated by administrator"));
 
         return RedirectToAction("Index");
     }
@@ -154,6 +157,18 @@ public class AdministrationController : Controller
             {
                 await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ForcePasswordChange", "true"));
                 _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, $"User {model.Email} created by administrator"));
+                UserPasswordSettings userPasswordSettings = new UserPasswordSettings
+                {
+                    UserId = user.Id,
+                    PasswordExpirationDays = 90,
+                    PasswordHistoryLimit = 5,
+                    IsPasswordChangeRequired = true,
+                    PasswordLengthRequired = 8,
+                    PasswordNumbersRequired = 2,
+                    OneTimePasswordActive = false
+                };
+                _context.UserPasswordSettings.Add(userPasswordSettings);
+                _context.SaveChanges();
 
                 return RedirectToAction("Index");
             }
