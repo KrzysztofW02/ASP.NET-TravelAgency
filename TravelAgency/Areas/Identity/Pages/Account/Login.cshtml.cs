@@ -146,6 +146,13 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
                     if (Math.Abs((double)(Input.OneTimePassword - correctOneTimePassword)) > 1)
                     {
+                        await _signInManager.UserManager.AccessFailedAsync(signInUser);
+
+                        if (await _signInManager.UserManager.IsLockedOutAsync(signInUser))
+                        {
+                            _logger.LogWarning("User account locked out due to OTP failures.");
+                            return RedirectToPage("./Lockout");
+                        }
                         ModelState.AddModelError(string.Empty, "Invalid login attempt. Login or password is inncorrect.");
                         return Page();
                     }

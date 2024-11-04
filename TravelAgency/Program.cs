@@ -97,7 +97,7 @@ namespace TravelAgency
                         await userManager.AddToRoleAsync(user, "Administrator");
                     }
                     user = await userManager.FindByEmailAsync("asdadas@interia.pl");
-                    if(user != null && !await userManager.IsInRoleAsync(user, "Manager"))
+                    if(user != null && !await userManager.IsInRoleAsync(user, "Administrator"))
                     {
                         await userManager.AddToRoleAsync(user, "Manager");
                     }
