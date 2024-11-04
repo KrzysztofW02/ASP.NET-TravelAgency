@@ -86,9 +86,8 @@ namespace TravelAgency.Areas.Identity.Pages.Account
             [Display(Name = "Remember me?")]
             public bool RememberMe { get; set; }
 
-            [Required]
             [Display(Name = "One-Time Password")]
-            public double OneTimePassword { get; set; }
+            public double? OneTimePassword { get; set; }
         }
 
         public double X { get; set; }
@@ -115,6 +114,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
             var signInUser = _signInManager.UserManager.Users.FirstOrDefault(x => x.Email == Input.Email);
+            var user = _context.UserPasswordSettings.First(x => x.UserId == signInUser.Id);
 
             if (ModelState.IsValid)
             {
@@ -123,27 +123,34 @@ namespace TravelAgency.Areas.Identity.Pages.Account
                     ModelState.AddModelError(string.Empty, "Invalid login attempt. User does not exist.");
                     return Page();
                 }
-
-                if (!int.TryParse(HttpContext.Session.GetString("XValue"), out int xValue) || xValue == 0)
+                if (user.OneTimePasswordActive == true)
                 {
-                    ModelState.AddModelError(string.Empty, "Session error or invalid X value. Please try logging in again.");
-                    return Page();
+                    if(Input.OneTimePassword == 0 || Input.OneTimePassword == null)
+                    {
+                        ModelState.AddModelError(string.Empty, "One-Time Password is required.");
+                        return Page();
+                    }
+
+                    if (!int.TryParse(HttpContext.Session.GetString("XValue"), out int xValue) || xValue == 0)
+                    {
+                        ModelState.AddModelError(string.Empty, "Session error or invalid X value. Please try logging in again.");
+                        return Page();
+                    }
+
+                    int aValue = Input.Email.Length;
+
+                    int correctOneTimePassword = (int)Math.Round(aValue * Math.Log(xValue));
+
+                    _logger.LogInformation($"Calculated OTP for x = {xValue} and email length = {aValue}: {correctOneTimePassword}");
+                    _logger.LogInformation($"Received OTP: {Input.OneTimePassword}");
+
+                    if (Math.Abs((double)(Input.OneTimePassword - correctOneTimePassword)) > 1)
+                    {
+                        ModelState.AddModelError(string.Empty, "Invalid login attempt. Login or password is inncorrect.");
+                        return Page();
+                    }
                 }
 
-                int aValue = Input.Email.Length;
-
-                int correctOneTimePassword = (int)Math.Round(aValue * Math.Log(xValue));
-
-                _logger.LogInformation($"Calculated OTP for x = {xValue} and email length = {aValue}: {correctOneTimePassword}");
-                _logger.LogInformation($"Received OTP: {Input.OneTimePassword}");
-
-                if (Math.Abs(Input.OneTimePassword - correctOneTimePassword) > 1)
-                {
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt. Login or password is inncorrect.");
-                    return Page();
-                }
-
-                var user = _context.UserPasswordSettings.First(x => x.UserId == signInUser.Id);
                 var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
 
                 if (user.IsPasswordChangeRequired)
