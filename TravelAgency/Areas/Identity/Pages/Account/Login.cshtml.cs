@@ -31,10 +31,11 @@ namespace TravelAgency.Areas.Identity.Pages.Account
             _context = context;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        public string MathQuestion { get; set; }
+
+        [BindProperty]
+        public string CaptchaAnswer { get; set; }
+
         [BindProperty]
         public InputModel Input { get; set; }
 
@@ -105,6 +106,11 @@ namespace TravelAgency.Areas.Identity.Pages.Account
             int aValue = 14; 
             int calculatedOtp = (int)Math.Round(aValue * Math.Log(xValue));
 
+            int a = random.Next(1, 10);
+            int b = random.Next(1, 10);
+            MathQuestion = $"{a} + {b} = ?";
+            HttpContext.Session.SetInt32("CaptchaResult", a + b);
+
             ViewData["CalculatedOtp"] = calculatedOtp;
         }
 
@@ -118,6 +124,13 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
+                int? expectedCaptchaResult = HttpContext.Session.GetInt32("CaptchaResult");
+                if (!int.TryParse(CaptchaAnswer, out int providedCaptchaResult) || providedCaptchaResult != expectedCaptchaResult)
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid CAPTCHA answer.");
+                    return Page();
+                }
+
                 if (signInUser == null)
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt. User does not exist.");
