@@ -4,12 +4,17 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Threading.Tasks;
+using Google.Api.Gax.ResourceNames;
+using Google.Cloud.RecaptchaEnterprise.V1;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using TravelAgency.Models;
 
 namespace TravelAgency.Areas.Identity.Pages.Account.Manage
@@ -20,13 +25,14 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly ILogger<ChangePasswordModel> _logger;
         private readonly TravelAgencyDbContext _context;
+        private readonly string _captchaSecret = "6Lf4ZnwqAAAAAB7QzyXQQKD9ZEQLdEk2lmzax-WP";
 
         public ChangePasswordModel(
             UserManager<IdentityUser> userManager,
             SignInManager<IdentityUser> signInManager,
             ILogger<ChangePasswordModel> logger,
             TravelAgencyDbContext context)
-            
+
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -106,6 +112,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
             {
                 return Page();
             }
+            new CreateAssessmentSample().createAssessment();
 
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -115,21 +122,21 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
 
             var passwordSettings = _context.UserPasswordSettings.FirstOrDefault(x => x.UserId == user.Id);
             var UserPasswordHistory = _context.PasswordHistories.Where(p => p.UserId == user.Id).OrderBy(x => x.DateChanged).Take(passwordSettings.PasswordHistoryLimit);
-            foreach(var password in UserPasswordHistory)
+            foreach (var password in UserPasswordHistory)
             {
-                var result  = _userManager.PasswordHasher.VerifyHashedPassword(user, password.PasswordHash, Input.NewPassword);
+                var result = _userManager.PasswordHasher.VerifyHashedPassword(user, password.PasswordHash, Input.NewPassword);
                 if (result == PasswordVerificationResult.Success)
                 {
                     ModelState.AddModelError(string.Empty, "You cannot use a password that you have used before.");
                     return Page();
                 }
             }
-            if(passwordSettings.PasswordLengthRequired > Input.NewPassword.Length)
+            if (passwordSettings.PasswordLengthRequired > Input.NewPassword.Length)
             {
                 ModelState.AddModelError(string.Empty, $"The new password must be at least {passwordSettings.PasswordLengthRequired} characters long.");
                 return Page();
             }
-            if(passwordSettings.PasswordNumbersRequired > Input.NewPassword.Count(char.IsDigit))
+            if (passwordSettings.PasswordNumbersRequired > Input.NewPassword.Count(char.IsDigit))
             {
                 ModelState.AddModelError(string.Empty, $"The new password must have at least {passwordSettings.PasswordNumbersRequired} digits.");
                 return Page();
@@ -169,5 +176,82 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
 
             return RedirectToPage();
         }
+        private async Task<bool> ValidateReCaptcha(string recaptchaResponse)
+        {
+            using (var client = new HttpClient())
+            {
+                var response = await client.PostAsync(
+                    $"https://www.google.com/recaptcha/api/siteverify?secret={_captchaSecret}&response={recaptchaResponse}",
+                    null);
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                dynamic result = JsonConvert.DeserializeObject(jsonResponse);
+                return result.success == "true";
+            }
+        }
+
+        public class CreateAssessmentSample
+        {
+            // Utwórz ocenę, aby przeanalizować ryzyko związane z działaniem w interfejsie użytkownika.
+            // projectID: Identyfikator Twojego projektu Google Cloud.
+            // recaptchaKey: Klucz reCAPTCHA powiązany z witryną lub aplikacją
+            // token: Wygenerowany token uzyskany od klienta.
+            // recaptchaAction: Nazwa działania odpowiadająca tokenowi.
+            public void createAssessment(string projectID = "cyberbezpieczens-1731409320128", string recaptchaKey = "6Lf4ZnwqAAAAAPqMtIpOiqADtQlzfpU8scHGq0DX", string token = "action-token", string recaptchaAction = "action-name")
+            {
+                // Utwórz klienta reCAPTCHA.
+                // DO ZROBIENIA: zapisz kod klienta w pamięci podręcznej (zalecane) lub wywołaj client.close() przed wyjściem z tej metody.
+                RecaptchaEnterpriseServiceClient client = RecaptchaEnterpriseServiceClient.Create();
+
+                ProjectName projectName = new ProjectName(projectID);
+
+                // Utwórz żądanie oceny.
+                CreateAssessmentRequest createAssessmentRequest = new CreateAssessmentRequest()
+                {
+                    Assessment = new Assessment()
+                    {
+                        // Ustaw właściwości zdarzenia do śledzenia.
+                        Event = new Event()
+                        {
+                            SiteKey = recaptchaKey,
+                            Token = token,
+                            ExpectedAction = recaptchaAction
+                        },
+                    },
+                    ParentAsProjectName = projectName
+                };
+
+                Assessment response = client.CreateAssessment(createAssessmentRequest);
+
+                // Sprawdź, czy token jest prawidłowy.
+                if (response.TokenProperties.Valid == false)
+                {
+                    System.Console.WriteLine("The CreateAssessment call failed because the token was: " +
+                        response.TokenProperties.InvalidReason.ToString());
+                    return;
+                }
+
+                // Sprawdź, czy oczekiwane działanie zostało wykonane.
+                if (response.TokenProperties.Action != recaptchaAction)
+                {
+                    System.Console.WriteLine("The action attribute in reCAPTCHA tag is: " +
+                        response.TokenProperties.Action.ToString());
+                    System.Console.WriteLine("The action attribute in the reCAPTCHA tag does not " +
+                        "match the action you are expecting to score");
+                    return;
+                }
+
+                // Uzyskaj ocenę ryzyka i jego przyczyny.
+                // Więcej informacji o interpretowaniu testu znajdziesz tutaj:
+                // https://cloud.google.com/recaptcha-enterprise/docs/interpret-assessment
+                System.Console.WriteLine("The reCAPTCHA score is: " + ((decimal)response.RiskAnalysis.Score));
+
+                foreach (RiskAnalysis.Types.ClassificationReason reason in response.RiskAnalysis.Reasons)
+                {
+                    System.Console.WriteLine(reason.ToString());
+                }
+            }
+        }
+
     }
 }
