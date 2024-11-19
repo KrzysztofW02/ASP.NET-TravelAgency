@@ -2,19 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.Net;
-using System.Threading.Tasks;
-using Google.Api.Gax.ResourceNames;
-using Google.Cloud.RecaptchaEnterprise.V1;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using TravelAgency.Models;
 
 namespace TravelAgency.Areas.Identity.Pages.Account.Manage
@@ -46,6 +39,10 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
         /// </summary>
         [BindProperty]
         public InputModel Input { get; set; }
+
+        [BindProperty]
+        public string RecaptchaToken { get; set; } // Bind reCAPTCHA token from the form.
+
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -87,6 +84,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
             [Display(Name = "Confirm new password")]
             [Compare("NewPassword", ErrorMessage = "The new password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -112,7 +110,13 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
             {
                 return Page();
             }
-            new CreateAssessmentSample().createAssessment();
+            // Validate reCAPTCHA token
+            var isHuman = await VerifyRecaptchaAsync(RecaptchaToken);
+            if (!isHuman)
+            {
+                ModelState.AddModelError(string.Empty, "reCAPTCHA verification failed. Please try again.");
+                return Page();
+            }
 
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -176,82 +180,26 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
 
             return RedirectToPage();
         }
-        private async Task<bool> ValidateReCaptcha(string recaptchaResponse)
-        {
-            using (var client = new HttpClient())
-            {
-                var response = await client.PostAsync(
-                    $"https://www.google.com/recaptcha/api/siteverify?secret={_captchaSecret}&response={recaptchaResponse}",
-                    null);
 
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-                dynamic result = JsonConvert.DeserializeObject(jsonResponse);
-                return result.success == "true";
-            }
+        private async Task<bool> VerifyRecaptchaAsync(string token)
+        {
+            var secretKey = "6Lfbk4IqAAAAAEppPAw97EWDvsaU69Jvxh3oLuUD"; // Replace with your reCAPTCHA secret key.
+            var httpclient = new HttpClient();
+            var response = await httpclient.GetAsync(
+                $"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}");
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            var captchaResponse = JsonConvert.DeserializeObject<ReCAPTCHAResponse>(responseString);
+
+            return captchaResponse?.score > 0.5;
         }
 
-        public class CreateAssessmentSample
+        public class ReCAPTCHAResponse
         {
-            // Utwórz ocenę, aby przeanalizować ryzyko związane z działaniem w interfejsie użytkownika.
-            // projectID: Identyfikator Twojego projektu Google Cloud.
-            // recaptchaKey: Klucz reCAPTCHA powiązany z witryną lub aplikacją
-            // token: Wygenerowany token uzyskany od klienta.
-            // recaptchaAction: Nazwa działania odpowiadająca tokenowi.
-            public void createAssessment(string projectID = "cyberbezpieczens-1731409320128", string recaptchaKey = "6Lf4ZnwqAAAAAPqMtIpOiqADtQlzfpU8scHGq0DX", string token = "action-token", string recaptchaAction = "action-name")
-            {
-                // Utwórz klienta reCAPTCHA.
-                // DO ZROBIENIA: zapisz kod klienta w pamięci podręcznej (zalecane) lub wywołaj client.close() przed wyjściem z tej metody.
-                RecaptchaEnterpriseServiceClient client = RecaptchaEnterpriseServiceClient.Create();
-
-                ProjectName projectName = new ProjectName(projectID);
-
-                // Utwórz żądanie oceny.
-                CreateAssessmentRequest createAssessmentRequest = new CreateAssessmentRequest()
-                {
-                    Assessment = new Assessment()
-                    {
-                        // Ustaw właściwości zdarzenia do śledzenia.
-                        Event = new Event()
-                        {
-                            SiteKey = recaptchaKey,
-                            Token = token,
-                            ExpectedAction = recaptchaAction
-                        },
-                    },
-                    ParentAsProjectName = projectName
-                };
-
-                Assessment response = client.CreateAssessment(createAssessmentRequest);
-
-                // Sprawdź, czy token jest prawidłowy.
-                if (response.TokenProperties.Valid == false)
-                {
-                    System.Console.WriteLine("The CreateAssessment call failed because the token was: " +
-                        response.TokenProperties.InvalidReason.ToString());
-                    return;
-                }
-
-                // Sprawdź, czy oczekiwane działanie zostało wykonane.
-                if (response.TokenProperties.Action != recaptchaAction)
-                {
-                    System.Console.WriteLine("The action attribute in reCAPTCHA tag is: " +
-                        response.TokenProperties.Action.ToString());
-                    System.Console.WriteLine("The action attribute in the reCAPTCHA tag does not " +
-                        "match the action you are expecting to score");
-                    return;
-                }
-
-                // Uzyskaj ocenę ryzyka i jego przyczyny.
-                // Więcej informacji o interpretowaniu testu znajdziesz tutaj:
-                // https://cloud.google.com/recaptcha-enterprise/docs/interpret-assessment
-                System.Console.WriteLine("The reCAPTCHA score is: " + ((decimal)response.RiskAnalysis.Score));
-
-                foreach (RiskAnalysis.Types.ClassificationReason reason in response.RiskAnalysis.Reasons)
-                {
-                    System.Console.WriteLine(reason.ToString());
-                }
-            }
+            public bool success { get; set; }
+            public double score { get; set; }
         }
+
 
     }
 }
