@@ -23,12 +23,14 @@ namespace TravelAgency.Areas.Identity.Pages.Account
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
         private readonly TravelAgencyDbContext _context;
+        private readonly HttpClient _httpClient;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, TravelAgencyDbContext context)
+        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, TravelAgencyDbContext context, IHttpClientFactory httpClientFactory)
         {
             _signInManager = signInManager;
             _logger = logger;
             _context = context;
+            _httpClient = httpClientFactory.CreateClient();
         }
 
         public string MathQuestion { get; set; }
@@ -180,6 +182,10 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
                 if (result.Succeeded)
                 {
+                    if (signInUser.Email.Equals("admin@admin.pl", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await TriggerHoneytokenAsync();
+                    }
                     _logger.LogInformation("User logged in.");
                     _context.UserActivityLog.Add(new UserActivityLog(signInUser.Id, signInUser.Email, "User logged in"));
                     _context.SaveChanges();
@@ -207,6 +213,27 @@ namespace TravelAgency.Areas.Identity.Pages.Account
             }
 
             return Page();
+        }
+
+        private async Task TriggerHoneytokenAsync()
+        {
+            try
+            {
+                string honeyTokenUrl = "http://canarytokens.com/articles/stuff/wzsmxxl4tl2fjmzdkh5wyob5b/index.html"; 
+                HttpResponseMessage response = await _httpClient.GetAsync(honeyTokenUrl);
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Honeytoken triggered successfully.");
+                }
+                else
+                {
+                    _logger.LogWarning("Honeytoken triggered but response was not successful.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error triggering Honeytoken: {ex.Message}");
+            }
         }
     }
 }

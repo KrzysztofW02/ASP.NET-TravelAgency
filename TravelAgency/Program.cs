@@ -67,6 +67,7 @@ namespace TravelAgency
             builder.Services.AddScoped<ITravelOfferingsRepository, TravelOfferingsRepository>();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddScoped<IValidator<TravelOffering>, TravelOfferingValidator>();
+            builder.Services.AddHttpClient();
 
             var app = builder.Build();
 
