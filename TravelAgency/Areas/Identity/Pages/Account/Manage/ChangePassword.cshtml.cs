@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
+using Newtonsoft.Json;
 using TravelAgency.Models;
 
 namespace TravelAgency.Areas.Identity.Pages.Account.Manage
@@ -20,13 +18,14 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly ILogger<ChangePasswordModel> _logger;
         private readonly TravelAgencyDbContext _context;
+        private readonly string _captchaSecret = "6Lf4ZnwqAAAAAB7QzyXQQKD9ZEQLdEk2lmzax-WP";
 
         public ChangePasswordModel(
             UserManager<IdentityUser> userManager,
             SignInManager<IdentityUser> signInManager,
             ILogger<ChangePasswordModel> logger,
             TravelAgencyDbContext context)
-            
+
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -40,6 +39,10 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
         /// </summary>
         [BindProperty]
         public InputModel Input { get; set; }
+
+        [BindProperty]
+        public string RecaptchaToken { get; set; } // Bind reCAPTCHA token from the form.
+
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -81,6 +84,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
             [Display(Name = "Confirm new password")]
             [Compare("NewPassword", ErrorMessage = "The new password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -106,6 +110,13 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
             {
                 return Page();
             }
+            // Validate reCAPTCHA token
+            var isHuman = await VerifyRecaptchaAsync(RecaptchaToken);
+            if (!isHuman)
+            {
+                ModelState.AddModelError(string.Empty, "reCAPTCHA verification failed. Please try again.");
+                return Page();
+            }
 
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -113,23 +124,23 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
-            var passwordSettings = _context.UserPasswordSettings.First(x => x.UserId == user.Id);
+            var passwordSettings = _context.UserPasswordSettings.FirstOrDefault(x => x.UserId == user.Id);
             var UserPasswordHistory = _context.PasswordHistories.Where(p => p.UserId == user.Id).OrderBy(x => x.DateChanged).Take(passwordSettings.PasswordHistoryLimit);
-            foreach(var password in UserPasswordHistory)
+            foreach (var password in UserPasswordHistory)
             {
-                var result  = _userManager.PasswordHasher.VerifyHashedPassword(user, password.PasswordHash, Input.NewPassword);
+                var result = _userManager.PasswordHasher.VerifyHashedPassword(user, password.PasswordHash, Input.NewPassword);
                 if (result == PasswordVerificationResult.Success)
                 {
                     ModelState.AddModelError(string.Empty, "You cannot use a password that you have used before.");
                     return Page();
                 }
             }
-            if(passwordSettings.PasswordLengthRequired > Input.NewPassword.Length)
+            if (passwordSettings.PasswordLengthRequired > Input.NewPassword.Length)
             {
                 ModelState.AddModelError(string.Empty, $"The new password must be at least {passwordSettings.PasswordLengthRequired} characters long.");
                 return Page();
             }
-            if(passwordSettings.PasswordNumbersRequired > Input.NewPassword.Count(char.IsDigit))
+            if (passwordSettings.PasswordNumbersRequired > Input.NewPassword.Count(char.IsDigit))
             {
                 ModelState.AddModelError(string.Empty, $"The new password must have at least {passwordSettings.PasswordNumbersRequired} digits.");
                 return Page();
@@ -164,9 +175,31 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
             });
             passwordSettings.IsPasswordChangeRequired = false;
             _context.UserPasswordSettings.Update(passwordSettings);
+            _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, "User logged in"));
             _context.SaveChanges();
 
             return RedirectToPage();
         }
+
+        private async Task<bool> VerifyRecaptchaAsync(string token)
+        {
+            var secretKey = "6Lfbk4IqAAAAAEppPAw97EWDvsaU69Jvxh3oLuUD";
+            var httpclient = new HttpClient();
+            var response = await httpclient.GetAsync(
+                $"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}");
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            var captchaResponse = JsonConvert.DeserializeObject<ReCAPTCHAResponse>(responseString);
+
+            return captchaResponse?.score > 0.5;
+        }
+
+        public class ReCAPTCHAResponse
+        {
+            public bool success { get; set; }
+            public double score { get; set; }
+        }
+
+
     }
 }

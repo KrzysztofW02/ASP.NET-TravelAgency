@@ -1,0 +1,38 @@
+﻿@model TravelAgency.ViewModels.PrintViewModel
+@{
+    ViewData["Title"] = "Print";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div>Drukowanie</div>
+
+@if(Model.IsAccessBlocked)
+{
+    <div>Wymaga potwierdzenia podaj klucz licensji</div>
+    <form asp-action="CheckLicense" method="post">
+        <input type="text" name="licenseKey" placeholder="Enter license key" />
+        <button type="submit">Wyślij</button>
+    </form>
+
+}
+else
+{
+    <div>Możesz drukować</div>
+    <button id="printBtn" class="btn btn-primary">Print Document</button>
+    <iframe id="printFrame" style="display: none;"></iframe>
+
+
+}
+
+<script>
+    document.getElementById('printBtn').addEventListener('click', function () {
+        const fileUrl = '/CB_Zad_4.pdf';
+        const printFrame = document.getElementById('printFrame');
+        printFrame.src = fileUrl;
+
+        printFrame.onload = function () {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        };
+    });
+</script>

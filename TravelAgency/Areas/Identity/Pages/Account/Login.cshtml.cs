@@ -23,18 +23,21 @@ namespace TravelAgency.Areas.Identity.Pages.Account
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
         private readonly TravelAgencyDbContext _context;
+        private readonly HttpClient _httpClient;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, TravelAgencyDbContext context)
+        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, TravelAgencyDbContext context, IHttpClientFactory httpClientFactory)
         {
             _signInManager = signInManager;
             _logger = logger;
             _context = context;
+            _httpClient = httpClientFactory.CreateClient();
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        public string MathQuestion { get; set; }
+
+        [BindProperty]
+        public string CaptchaAnswer { get; set; }
+
         [BindProperty]
         public InputModel Input { get; set; }
 
@@ -85,23 +88,32 @@ namespace TravelAgency.Areas.Identity.Pages.Account
             /// </summary>
             [Display(Name = "Remember me?")]
             public bool RememberMe { get; set; }
+
+            [Display(Name = "One-Time Password")]
+            public double? OneTimePassword { get; set; }
         }
+
+        public double X { get; set; }
 
         public async Task OnGetAsync(string returnUrl = null)
         {
-            if (!string.IsNullOrEmpty(ErrorMessage))
-            {
-                ModelState.AddModelError(string.Empty, ErrorMessage);
-            }
-
-            returnUrl ??= Url.Content("~/");
-
-            // Clear the existing external cookie to ensure a clean login process
-            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-
+            ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
-            ReturnUrl = returnUrl;
+            Random random = new Random();
+            int xValue = random.Next(1, 101); 
+            HttpContext.Session.SetString("XValue", xValue.ToString());
+            X = xValue;
+
+            int aValue = 14; 
+            int calculatedOtp = (int)Math.Round(aValue * Math.Log(xValue));
+
+            int a = random.Next(1, 10);
+            int b = random.Next(1, 10);
+            MathQuestion = $"{a} + {b} = ?";
+            HttpContext.Session.SetInt32("CaptchaResult", a + b);
+
+            ViewData["CalculatedOtp"] = calculatedOtp;
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
@@ -110,48 +122,118 @@ namespace TravelAgency.Areas.Identity.Pages.Account
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
             var signInUser = _signInManager.UserManager.Users.FirstOrDefault(x => x.Email == Input.Email);
+            var user = _context.UserPasswordSettings.First(x => x.UserId == signInUser.Id);
 
             if (ModelState.IsValid)
             {
+                int? expectedCaptchaResult = HttpContext.Session.GetInt32("CaptchaResult");
+                if (!int.TryParse(CaptchaAnswer, out int providedCaptchaResult) || providedCaptchaResult != expectedCaptchaResult)
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid CAPTCHA answer.");
+                    return Page();
+                }
 
                 if (signInUser == null)
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt. User does not exist.");
                     return Page();
                 }
-                var user = _context.UserPasswordSettings.First(x => x.UserId == signInUser.Id);
-                // This doesn't count login failures towards account lockout
-                // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-                // Check if password change is required
+                if (user.OneTimePasswordActive == true)
+                {
+                    if(Input.OneTimePassword == 0 || Input.OneTimePassword == null)
+                    {
+                        ModelState.AddModelError(string.Empty, "One-Time Password is required.");
+                        return Page();
+                    }
+
+                    if (!int.TryParse(HttpContext.Session.GetString("XValue"), out int xValue) || xValue == 0)
+                    {
+                        ModelState.AddModelError(string.Empty, "Session error or invalid X value. Please try logging in again.");
+                        return Page();
+                    }
+
+                    int aValue = Input.Email.Length;
+
+                    int correctOneTimePassword = (int)Math.Round(aValue * Math.Log(xValue));
+
+                    _logger.LogInformation($"Calculated OTP for x = {xValue} and email length = {aValue}: {correctOneTimePassword}");
+                    _logger.LogInformation($"Received OTP: {Input.OneTimePassword}");
+
+                    if (Math.Abs((double)(Input.OneTimePassword - correctOneTimePassword)) > 1)
+                    {
+                        await _signInManager.UserManager.AccessFailedAsync(signInUser);
+
+                        if (await _signInManager.UserManager.IsLockedOutAsync(signInUser))
+                        {
+                            _logger.LogWarning("User account locked out due to OTP failures.");
+                            return RedirectToPage("./Lockout");
+                        }
+                        ModelState.AddModelError(string.Empty, "Invalid login attempt. Login or password is inncorrect.");
+                        return Page();
+                    }
+                }
+
+                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
+
                 if (user.IsPasswordChangeRequired)
                 {
-                    // Redirect to password change page
                     return RedirectToPage("/Account/Manage/ChangePassword", new { userId = user.Id });
                 }
+
                 if (result.Succeeded)
                 {
+                    if (signInUser.Email.Equals("admin@admin.pl", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await TriggerHoneytokenAsync();
+                    }
                     _logger.LogInformation("User logged in.");
+                    _context.UserActivityLog.Add(new UserActivityLog(signInUser.Id, signInUser.Email, "User logged in"));
+                    _context.SaveChanges();
                     return LocalRedirect(returnUrl);
                 }
+
                 if (result.RequiresTwoFactor)
                 {
                     return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
                 }
+
                 if (result.IsLockedOut)
                 {
                     _logger.LogWarning("User account locked out.");
+                    ModelState.AddModelError(string.Empty, "Your account has been locked for 15 minutes due to too many failed login attempts.");
                     return RedirectToPage("./Lockout");
                 }
                 else
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    _context.UserActivityLog.Add(new UserActivityLog(signInUser.Id, signInUser.Email, "Invalid login attempt"));
+                    _context.SaveChanges();
                     return Page();
                 }
             }
 
-            // If we got this far, something failed, redisplay form
             return Page();
+        }
+
+        private async Task TriggerHoneytokenAsync()
+        {
+            try
+            {
+                string honeyTokenUrl = "http://canarytokens.com/articles/stuff/wzsmxxl4tl2fjmzdkh5wyob5b/index.html"; 
+                HttpResponseMessage response = await _httpClient.GetAsync(honeyTokenUrl);
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Honeytoken triggered successfully.");
+                }
+                else
+                {
+                    _logger.LogWarning("Honeytoken triggered but response was not successful.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error triggering Honeytoken: {ex.Message}");
+            }
         }
     }
 }

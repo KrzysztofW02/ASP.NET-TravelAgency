@@ -31,12 +31,34 @@ namespace TravelAgency
                 options.Password.RequireLowercase = true;
                 options.Password.RequireUppercase = true;
                 options.Password.RequireNonAlphanumeric = true;
+
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15); 
+                options.Lockout.MaxFailedAccessAttempts = 5; 
+                options.Lockout.AllowedForNewUsers = true;  
             })
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<TravelAgencyDbContext>()
             .AddPasswordValidator<CustomPasswordValidator>()
             .AddDefaultTokenProviders()
             .AddDefaultUI();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(15); 
+                options.SlidingExpiration = false; 
+                options.LoginPath = "/Identity/Account/Login"; 
+                options.LogoutPath = "/Identity/Account/Logout"; 
+                options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+            });
+
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(15); 
+                options.Cookie.HttpOnly = true; 
+                options.Cookie.IsEssential = true; 
+            });
+
+
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -45,8 +67,7 @@ namespace TravelAgency
             builder.Services.AddScoped<ITravelOfferingsRepository, TravelOfferingsRepository>();
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddScoped<IValidator<TravelOffering>, TravelOfferingValidator>();
-
-
+            builder.Services.AddHttpClient();
 
             var app = builder.Build();
 
@@ -60,7 +81,7 @@ namespace TravelAgency
                     DbInitializer.Initialize(context);
 
                     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                    var roles = new[] { "Administrator", "Manager", "Member" };
+                    var roles = new[] { "Administrator", "Manager", "Member", "TravelAgent" };
 
                     foreach (var role in roles)
                     {
@@ -77,9 +98,19 @@ namespace TravelAgency
                         await userManager.AddToRoleAsync(user, "Administrator");
                     }
                     user = await userManager.FindByEmailAsync("asdadas@interia.pl");
-                    if(user != null && !await userManager.IsInRoleAsync(user, "Manager"))
+                    if(user != null && !await userManager.IsInRoleAsync(user, "Administrator"))
                     {
                         await userManager.AddToRoleAsync(user, "Manager");
+                    }
+                    user = await userManager.FindByEmailAsync("user1@interia.pl");
+                    if (user != null && !await userManager.IsInRoleAsync(user, "Member"))
+                    {
+                        await userManager.AddToRoleAsync(user, "Member");
+                    }
+                    user = await userManager.FindByEmailAsync("TravelAgent@agent.pl");
+                    if (user != null && !await userManager.IsInRoleAsync(user, "TravelAgent"))
+                    {
+                        await userManager.AddToRoleAsync(user, "TravelAgent");
                     }
                 }
                 catch (Exception ex)
@@ -126,8 +157,13 @@ namespace TravelAgency
                             .Where(p => p.UserId == user.Id)
                             .OrderByDescending(x => x.DateChanged)
                             .FirstOrDefault();
+                            var daysWithCurrentPassword = 0.0;
+                            var passwordExpirationDays = 30;
 
-                            var daysWithCurrentPassword = (DateTime.Now - userPasswordHistory.DateChanged ).TotalDays;
+                            if (userPasswordHistory != null)
+                            {
+                                daysWithCurrentPassword = (DateTime.Now - userPasswordHistory.DateChanged ).TotalDays;
+                            }
                             if (daysWithCurrentPassword >= userPasswordSettings.PasswordExpirationDays)
                             {
                                 context.Response.Redirect("/Identity/Account/Manage/ChangePassword");
@@ -153,6 +189,8 @@ namespace TravelAgency
 
                 await next();
             });
+
+            app.UseSession();
 
             app.MapRazorPages();
 

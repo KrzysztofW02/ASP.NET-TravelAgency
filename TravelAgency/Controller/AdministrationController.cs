@@ -12,7 +12,7 @@ public class AdministrationController : Controller
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly TravelAgencyDbContext _context;
 
-    public AdministrationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, TravelAgencyDbContext context )
+    public AdministrationController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, TravelAgencyDbContext context)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -49,6 +49,16 @@ public class AdministrationController : Controller
 
         return View(model);
     }
+    public async Task<IActionResult> UserLogs()
+    {
+        var logs = await _context.UserActivityLog.ToListAsync();
+        logs = logs.OrderByDescending(x => x.ActivityTime).ToList();
+        var model = new UserLoggsViewModel
+        {
+            _userLogs = logs
+        };
+        return View(model);
+    }
     public async Task<IActionResult> ManageUserPassword(string userId)
     {
         var userPasswordSettings = _context.UserPasswordSettings.FirstOrDefault(x => x.UserId == userId);
@@ -64,6 +74,10 @@ public class AdministrationController : Controller
             UserEmail = user.Email,
             PasswordExpirationDays = userPasswordSettings.PasswordExpirationDays,
             PasswordHistoryLimit = userPasswordSettings.PasswordHistoryLimit,
+            IsPasswordChangeRequired = userPasswordSettings.IsPasswordChangeRequired,
+            PasswordLengthRequired = userPasswordSettings.PasswordLengthRequired,
+            PasswordNumbersRequired = userPasswordSettings.PasswordNumbersRequired,
+            OneTimePasswordActive = userPasswordSettings.OneTimePasswordActive
         };
 
         return View(model);
@@ -83,6 +97,7 @@ public class AdministrationController : Controller
         userPasswordSettings.IsPasswordChangeRequired = model.IsPasswordChangeRequired;
         userPasswordSettings.PasswordLengthRequired = model.PasswordLengthRequired;
         userPasswordSettings.PasswordNumbersRequired = model.PasswordNumbersRequired;
+        userPasswordSettings.OneTimePasswordActive = model.OneTimePasswordActive;
 
         _context.UserPasswordSettings.Update(userPasswordSettings);
         _context.SaveChanges();
@@ -112,6 +127,9 @@ public class AdministrationController : Controller
         model.SelectedRoles = model.SelectedRoles ?? new List<string>();
         result = await _userManager.AddToRolesAsync(user, model.SelectedRoles);
 
+        _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, $"User {user.Email} roles updated by administrator"));
+        _context.SaveChanges();
+
         if (!result.Succeeded)
         {
             ModelState.AddModelError("", "Cannot add selected roles to user");
@@ -130,7 +148,7 @@ public class AdministrationController : Controller
             {
                 UserName = model.Email,
                 Email = model.Email,
-                EmailConfirmed = true 
+                EmailConfirmed = true
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -138,6 +156,19 @@ public class AdministrationController : Controller
             if (result.Succeeded)
             {
                 await _userManager.AddClaimAsync(user, new System.Security.Claims.Claim("ForcePasswordChange", "true"));
+                _context.UserActivityLog.Add(new UserActivityLog(user.Id, user.Email, $"User {model.Email} created by administrator"));
+                UserPasswordSettings userPasswordSettings = new UserPasswordSettings
+                {
+                    UserId = user.Id,
+                    PasswordExpirationDays = 90,
+                    PasswordHistoryLimit = 5,
+                    IsPasswordChangeRequired = true,
+                    PasswordLengthRequired = 8,
+                    PasswordNumbersRequired = 2,
+                    OneTimePasswordActive = false
+                };
+                _context.UserPasswordSettings.Add(userPasswordSettings);
+                _context.SaveChanges();
 
                 return RedirectToAction("Index");
             }
