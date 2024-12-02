@@ -183,7 +183,7 @@ namespace TravelAgency.Areas.Identity.Pages.Account.Manage
 
         private async Task<bool> VerifyRecaptchaAsync(string token)
         {
-            var secretKey = "6Lfbk4IqAAAAAEppPAw97EWDvsaU69Jvxh3oLuUD"; // Replace with your reCAPTCHA secret key.
+            var secretKey = "6Lfbk4IqAAAAAEppPAw97EWDvsaU69Jvxh3oLuUD";
             var httpclient = new HttpClient();
             var response = await httpclient.GetAsync(
                 $"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}");

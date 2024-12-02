@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Text;
 using TravelAgency.Models;
 using TravelAgency.ViewModels;
 
@@ -64,5 +65,60 @@ namespace TravelAgency.Controllers
                 .FirstOrDefault(x => x.Id == id);
             return View(bike);
         }
+        public IActionResult Print()
+        {
+            var printViewModel = new PrintViewModel();
+            printViewModel.IsAccessBlocked = true;
+
+            return View(printViewModel);
+        }
+
+        [HttpPost]
+        public IActionResult CheckLicense(string LicenseKey)
+        {
+            var decryptedLicense = Decrypt(LicenseKey, "haslo");
+            if(decryptedLicense == "TRAVEL")
+            {
+                var printViewModel = new PrintViewModel();
+                printViewModel.IsAccessBlocked = false;
+                return View("Print", printViewModel);
+            }
+            else
+            {
+                var printView = new PrintViewModel();
+                return View("Print", printView);
+            }
+        }
+
+
+        public static string Decrypt(string cipherText, string key)
+        {
+            StringBuilder decryptedText = new StringBuilder();
+            int keyIndex = 0;
+            key = key.ToUpper();
+
+            foreach (char c in cipherText)
+            {
+                if (char.IsLetter(c))
+                {
+                    bool isUpperCase = char.IsUpper(c);
+                    char offset = isUpperCase ? 'A' : 'a';
+
+                    int keyShift = key[keyIndex] - 'A';
+                    char decryptedChar = (char)((((c - offset) - keyShift + 26) % 26) + offset);
+
+                    decryptedText.Append(decryptedChar);
+
+                    keyIndex = (keyIndex + 1) % key.Length;
+                }
+                else
+                {
+                    decryptedText.Append(c);
+                }
+            }
+
+            return decryptedText.ToString();
+        }
+
     }
 }
